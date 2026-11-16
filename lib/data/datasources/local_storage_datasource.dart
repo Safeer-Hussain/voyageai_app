@@ -4,6 +4,7 @@ import '../../core/storage/app_database.dart';
 import '../models/activity_model.dart';
 import '../models/document_model.dart';
 import '../models/expense_model.dart';
+import '../models/packing_item_model.dart';
 import '../models/trip_model.dart';
 import '../models/waypoint_model.dart';
 
@@ -143,5 +144,61 @@ class LocalStorageDatasource {
   Future<void> deleteExpense(String expenseId) async {
     final db = await _db;
     await db.delete('expenses', where: 'id = ?', whereArgs: [expenseId]);
+  }
+
+  // Packing Items
+  Future<List<PackingItemModel>> getPackingItemsForTrip(String tripId) async {
+    final db = await _db;
+    final results = await db.query(
+      'packing_items',
+      where: 'trip_id = ?',
+      whereArgs: [tripId],
+      orderBy: 'is_essential DESC, title ASC',
+    );
+    return results.map((m) => PackingItemModel.fromMap(m)).toList();
+  }
+
+  Future<void> insertPackingItem(PackingItemModel item) async {
+    final db = await _db;
+    await db.insert(
+      'packing_items',
+      item.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> updatePackingItemStatus(String itemId, bool isPacked) async {
+    final db = await _db;
+    await db.update(
+      'packing_items',
+      {'is_packed': isPacked ? 1 : 0},
+      where: 'id = ?',
+      whereArgs: [itemId],
+    );
+  }
+
+  Future<void> deletePackingItem(String itemId) async {
+    final db = await _db;
+    await db.delete('packing_items', where: 'id = ?', whereArgs: [itemId]);
+  }
+
+  Future<void> autoPackEssentials(String tripId) async {
+    final db = await _db;
+    await db.update(
+      'packing_items',
+      {'is_packed': 1},
+      where: 'trip_id = ? AND is_essential = 1',
+      whereArgs: [tripId],
+    );
+  }
+
+  Future<void> resetChecklist(String tripId) async {
+    final db = await _db;
+    await db.update(
+      'packing_items',
+      {'is_packed': 0},
+      where: 'trip_id = ?',
+      whereArgs: [tripId],
+    );
   }
 }

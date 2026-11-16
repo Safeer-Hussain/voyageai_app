@@ -11,6 +11,7 @@ import 'package:voyage_ai_app/domain/repositories/concierge_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/document_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/expense_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/itinerary_repository.dart';
+import 'package:voyage_ai_app/domain/repositories/packing_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/telemetry_repository.dart';
 import 'package:voyage_ai_app/presentation/shell/views/adaptive_scaffold.dart';
 
@@ -18,6 +19,7 @@ import '../unit/ai_concierge_controller_test.dart';
 import '../unit/document_vault_controller_test.dart';
 import '../unit/expense_ledger_controller_test.dart';
 import '../unit/itinerary_controller_test.dart';
+import '../unit/packing_checklist_controller_test.dart';
 
 class MockTelemetryRepository implements TelemetryRepository {
   @override
@@ -89,6 +91,11 @@ void main() {
       sl.unregister<TelemetryRepository>();
     }
     sl.registerSingleton<TelemetryRepository>(MockTelemetryRepository());
+
+    if (sl.isRegistered<PackingRepository>()) {
+      sl.unregister<PackingRepository>();
+    }
+    sl.registerSingleton<PackingRepository>(MockPackingRepository());
   });
 
   tearDown(() {

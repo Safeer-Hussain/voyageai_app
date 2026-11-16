@@ -110,10 +110,34 @@ class AppDatabase {
         timestamp INTEGER NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS packing_items (
+        id TEXT PRIMARY KEY,
+        trip_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        category TEXT NOT NULL,
+        weight_kg REAL NOT NULL,
+        is_packed INTEGER NOT NULL,
+        is_essential INTEGER NOT NULL
+      )
+    ''');
   }
 
   Future<void> seedInitialDataIfEmpty() async {
     final db = await database;
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS packing_items (
+        id TEXT PRIMARY KEY,
+        trip_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        category TEXT NOT NULL,
+        weight_kg REAL NOT NULL,
+        is_packed INTEGER NOT NULL,
+        is_essential INTEGER NOT NULL
+      )
+    ''');
+
     final tripsCount = Sqflite.firstIntValue(
       await db.rawQuery('SELECT COUNT(*) FROM trips'),
     );
@@ -136,8 +160,22 @@ class AppDatabase {
       for (final expense in MockExpeditions.initialExpenses) {
         batch.insert('expenses', expense);
       }
+      for (final packing in MockExpeditions.initialPackingItems) {
+        batch.insert('packing_items', packing);
+      }
 
       await batch.commit(noResult: true);
+    } else {
+      final packingCount = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM packing_items'),
+      );
+      if (packingCount == null || packingCount == 0) {
+        final batch = db.batch();
+        for (final packing in MockExpeditions.initialPackingItems) {
+          batch.insert('packing_items', packing);
+        }
+        await batch.commit(noResult: true);
+      }
     }
   }
 
@@ -147,6 +185,7 @@ class AppDatabase {
     await db.delete('waypoints');
     await db.delete('documents');
     await db.delete('expenses');
+    await db.delete('packing_items');
     await db.delete('trips');
   }
 }

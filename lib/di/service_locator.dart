@@ -10,11 +10,13 @@ import '../data/repositories/concierge_repository_impl.dart';
 import '../data/repositories/document_repository_impl.dart';
 import '../data/repositories/expense_repository_impl.dart';
 import '../data/repositories/itinerary_repository_impl.dart';
+import '../data/repositories/packing_repository_impl.dart';
 import '../data/repositories/telemetry_repository_impl.dart';
 import '../domain/repositories/concierge_repository.dart';
 import '../domain/repositories/document_repository.dart';
 import '../domain/repositories/expense_repository.dart';
 import '../domain/repositories/itinerary_repository.dart';
+import '../domain/repositories/packing_repository.dart';
 import '../domain/repositories/telemetry_repository.dart';
 
 final sl = GetIt.instance;
@@ -91,6 +93,13 @@ Future<void> initServiceLocator({
   }
   sl.registerLazySingleton<TelemetryRepository>(
     () => TelemetryRepositoryImpl(sl<TelemetryBridge>()),
+  );
+
+  if (sl.isRegistered<PackingRepository>()) {
+    sl.unregister<PackingRepository>();
+  }
+  sl.registerLazySingleton<PackingRepository>(
+    () => PackingRepositoryImpl(sl<LocalStorageDatasource>()),
   );
 
   // Controllers

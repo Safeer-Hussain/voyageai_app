@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/itinerary_controller.dart';
+import '../../packing/views/packing_checklist_view.dart';
 import 'widgets/activity_card.dart';
 import 'widgets/add_activity_sheet.dart';
 import 'widgets/generate_trip_sheet.dart';
@@ -202,6 +203,14 @@ class ItineraryView extends StatelessWidget {
                       },
                     ),
                   ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.luggage_outlined,
+                    color: colorScheme.primary,
+                  ),
+                  tooltip: 'Packing Checklist',
+                  onPressed: () => Get.to(() => const PackingChecklistView()),
                 ),
                 IconButton(
                   icon: Icon(Icons.share_outlined, color: colorScheme.primary),
