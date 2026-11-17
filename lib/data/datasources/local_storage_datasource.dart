@@ -4,6 +4,7 @@ import '../../core/storage/app_database.dart';
 import '../models/activity_model.dart';
 import '../models/document_model.dart';
 import '../models/expense_model.dart';
+import '../models/jetlag_plan_model.dart';
 import '../models/packing_item_model.dart';
 import '../models/trip_model.dart';
 import '../models/waypoint_model.dart';
@@ -199,6 +200,80 @@ class LocalStorageDatasource {
       {'is_packed': 0},
       where: 'trip_id = ?',
       whereArgs: [tripId],
+    );
+  }
+
+  // Jetlag Plans
+  Future<JetlagPlanModel?> getJetlagPlanForTrip(String tripId) async {
+    final db = await _db;
+    final results = await db.query(
+      'jetlag_plans',
+      where: 'trip_id = ?',
+      whereArgs: [tripId],
+    );
+    if (results.isEmpty) return null;
+    return JetlagPlanModel.fromMap(results.first);
+  }
+
+  Future<void> insertJetlagPlan(JetlagPlanModel plan) async {
+    final db = await _db;
+    await db.insert(
+      'jetlag_plans',
+      plan.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> updateJetlagShiftDayCheckpoint(
+    String planId,
+    int dayOffset,
+    bool isCompleted,
+  ) async {
+    final db = await _db;
+    final results = await db.query(
+      'jetlag_plans',
+      where: 'id = ?',
+      whereArgs: [planId],
+    );
+    if (results.isEmpty) return;
+
+    final plan = JetlagPlanModel.fromMap(results.first);
+    final updatedDays = plan.shiftDays.map((d) {
+      if (d.dayOffset == dayOffset) {
+        return d.copyWith(isCompleted: isCompleted);
+      }
+      return d;
+    }).toList();
+
+    final updatedPlan = plan.copyWith(shiftDays: updatedDays);
+    await db.update(
+      'jetlag_plans',
+      {'shift_days_json': updatedPlan.toMap()['shift_days_json']},
+      where: 'id = ?',
+      whereArgs: [planId],
+    );
+  }
+
+  Future<void> resetJetlagPlan(String planId) async {
+    final db = await _db;
+    final results = await db.query(
+      'jetlag_plans',
+      where: 'id = ?',
+      whereArgs: [planId],
+    );
+    if (results.isEmpty) return;
+
+    final plan = JetlagPlanModel.fromMap(results.first);
+    final updatedDays = plan.shiftDays.map((d) {
+      return d.copyWith(isCompleted: false);
+    }).toList();
+
+    final updatedPlan = plan.copyWith(shiftDays: updatedDays);
+    await db.update(
+      'jetlag_plans',
+      {'shift_days_json': updatedPlan.toMap()['shift_days_json']},
+      where: 'id = ?',
+      whereArgs: [planId],
     );
   }
 }

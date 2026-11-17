@@ -122,6 +122,23 @@ class AppDatabase {
         is_essential INTEGER NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS jetlag_plans (
+        id TEXT PRIMARY KEY,
+        trip_id TEXT NOT NULL,
+        origin_city TEXT NOT NULL,
+        origin_tz_offset INTEGER NOT NULL,
+        destination_city TEXT NOT NULL,
+        destination_tz_offset INTEGER NOT NULL,
+        departure_timestamp INTEGER NOT NULL,
+        arrival_timestamp INTEGER NOT NULL,
+        direction TEXT NOT NULL,
+        total_hour_shift INTEGER NOT NULL,
+        days_to_adapt INTEGER NOT NULL,
+        shift_days_json TEXT NOT NULL
+      )
+    ''');
   }
 
   Future<void> seedInitialDataIfEmpty() async {
@@ -135,6 +152,23 @@ class AppDatabase {
         weight_kg REAL NOT NULL,
         is_packed INTEGER NOT NULL,
         is_essential INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS jetlag_plans (
+        id TEXT PRIMARY KEY,
+        trip_id TEXT NOT NULL,
+        origin_city TEXT NOT NULL,
+        origin_tz_offset INTEGER NOT NULL,
+        destination_city TEXT NOT NULL,
+        destination_tz_offset INTEGER NOT NULL,
+        departure_timestamp INTEGER NOT NULL,
+        arrival_timestamp INTEGER NOT NULL,
+        direction TEXT NOT NULL,
+        total_hour_shift INTEGER NOT NULL,
+        days_to_adapt INTEGER NOT NULL,
+        shift_days_json TEXT NOT NULL
       )
     ''');
 
@@ -163,6 +197,9 @@ class AppDatabase {
       for (final packing in MockExpeditions.initialPackingItems) {
         batch.insert('packing_items', packing);
       }
+      for (final plan in MockExpeditions.initialJetlagPlans) {
+        batch.insert('jetlag_plans', plan);
+      }
 
       await batch.commit(noResult: true);
     } else {
@@ -176,6 +213,17 @@ class AppDatabase {
         }
         await batch.commit(noResult: true);
       }
+
+      final jetlagCount = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM jetlag_plans'),
+      );
+      if (jetlagCount == null || jetlagCount == 0) {
+        final batch = db.batch();
+        for (final plan in MockExpeditions.initialJetlagPlans) {
+          batch.insert('jetlag_plans', plan);
+        }
+        await batch.commit(noResult: true);
+      }
     }
   }
 
@@ -186,6 +234,7 @@ class AppDatabase {
     await db.delete('documents');
     await db.delete('expenses');
     await db.delete('packing_items');
+    await db.delete('jetlag_plans');
     await db.delete('trips');
   }
 }

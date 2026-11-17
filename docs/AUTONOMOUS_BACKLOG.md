@@ -3,7 +3,7 @@
 This backlog contains 25 production-grade daily engineering sprints. Each sprint implements a distinct, 100% functional feature with strict unit/widget tests and passes `tool/sprint_gate.dart`.
 
 - [x] Sprint 1: Interactive Packing Checklist with Weight Estimator & Baggage Allowance Optimizer
-- [ ] Sprint 2: Multi-Timezone Circadian Jetlag Recovery Planner & Sleep Shift Protocol
+- [x] Sprint 2: Multi-Timezone Circadian Jetlag Recovery Planner & Sleep Shift Protocol
 - [ ] Sprint 3: Offline Currency Quick-Reference Cheat-Sheet & Multi-Merchant Tip Calculator
 - [ ] Sprint 4: ICAO & EU261 Flight Delay Compensation Eligibility Evaluator
 - [ ] Sprint 5: Collaborative Multi-Traveler Group Expense Settlement & Debt Minimization Matrix

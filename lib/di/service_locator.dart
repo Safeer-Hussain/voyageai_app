@@ -10,12 +10,14 @@ import '../data/repositories/concierge_repository_impl.dart';
 import '../data/repositories/document_repository_impl.dart';
 import '../data/repositories/expense_repository_impl.dart';
 import '../data/repositories/itinerary_repository_impl.dart';
+import '../data/repositories/jetlag_repository_impl.dart';
 import '../data/repositories/packing_repository_impl.dart';
 import '../data/repositories/telemetry_repository_impl.dart';
 import '../domain/repositories/concierge_repository.dart';
 import '../domain/repositories/document_repository.dart';
 import '../domain/repositories/expense_repository.dart';
 import '../domain/repositories/itinerary_repository.dart';
+import '../domain/repositories/jetlag_repository.dart';
 import '../domain/repositories/packing_repository.dart';
 import '../domain/repositories/telemetry_repository.dart';
 
@@ -100,6 +102,13 @@ Future<void> initServiceLocator({
   }
   sl.registerLazySingleton<PackingRepository>(
     () => PackingRepositoryImpl(sl<LocalStorageDatasource>()),
+  );
+
+  if (sl.isRegistered<JetlagRepository>()) {
+    sl.unregister<JetlagRepository>();
+  }
+  sl.registerLazySingleton<JetlagRepository>(
+    () => JetlagRepositoryImpl(sl<LocalStorageDatasource>()),
   );
 
   // Controllers

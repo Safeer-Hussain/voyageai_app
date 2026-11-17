@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/itinerary_controller.dart';
+import '../../jetlag/views/jetlag_planner_view.dart';
 import '../../packing/views/packing_checklist_view.dart';
 import 'widgets/activity_card.dart';
 import 'widgets/add_activity_sheet.dart';
@@ -203,6 +204,14 @@ class ItineraryView extends StatelessWidget {
                       },
                     ),
                   ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.timelapse_outlined,
+                    color: colorScheme.primary,
+                  ),
+                  tooltip: 'Circadian Jetlag Protocol',
+                  onPressed: () => Get.to(() => const JetlagPlannerView()),
                 ),
                 IconButton(
                   icon: Icon(
