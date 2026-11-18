@@ -4,7 +4,7 @@ This backlog contains 25 production-grade daily engineering sprints. Each sprint
 
 - [x] Sprint 1: Interactive Packing Checklist with Weight Estimator & Baggage Allowance Optimizer
 - [x] Sprint 2: Multi-Timezone Circadian Jetlag Recovery Planner & Sleep Shift Protocol
-- [ ] Sprint 3: Offline Currency Quick-Reference Cheat-Sheet & Multi-Merchant Tip Calculator
+- [x] Sprint 3: Offline Currency Quick-Reference Cheat-Sheet & Multi-Merchant Tip Calculator
 - [ ] Sprint 4: ICAO & EU261 Flight Delay Compensation Eligibility Evaluator
 - [ ] Sprint 5: Collaborative Multi-Traveler Group Expense Settlement & Debt Minimization Matrix
 - [ ] Sprint 6: High-Altitude Acclimatization & Acute Mountain Sickness (AMS) Telemetry Tracker

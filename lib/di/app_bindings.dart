@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/repositories/concierge_repository.dart';
+import '../domain/repositories/currency_repository.dart';
 import '../domain/repositories/document_repository.dart';
 import '../domain/repositories/expense_repository.dart';
 import '../domain/repositories/itinerary_repository.dart';
@@ -9,6 +10,7 @@ import '../domain/repositories/jetlag_repository.dart';
 import '../domain/repositories/packing_repository.dart';
 import '../domain/repositories/telemetry_repository.dart';
 import '../presentation/ai_concierge/controllers/ai_concierge_controller.dart';
+import '../presentation/currency/controllers/currency_cheat_sheet_controller.dart';
 import '../presentation/document_vault/controllers/document_vault_controller.dart';
 import '../presentation/expense_ledger/controllers/expense_ledger_controller.dart';
 import '../presentation/itinerary/controllers/itinerary_controller.dart';
@@ -43,6 +45,10 @@ class AppBindings extends Bindings {
     );
 
     Get.put<JetlagController>(JetlagController(sl<JetlagRepository>()));
+
+    Get.put<CurrencyCheatSheetController>(
+      CurrencyCheatSheetController(sl<CurrencyRepository>()),
+    );
 
     Get.put<AiConciergeController>(
       AiConciergeController(sl<ConciergeRepository>()),

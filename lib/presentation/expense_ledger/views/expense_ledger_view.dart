@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/currency_formatter.dart';
+import '../../currency/views/currency_cheat_sheet_view.dart';
 import '../../itinerary/controllers/itinerary_controller.dart';
 import '../controllers/expense_ledger_controller.dart';
 import 'widgets/add_expense_sheet.dart';
@@ -207,6 +208,15 @@ class ExpenseLedgerView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+                IconButton(
+                  icon: Icon(
+                    Icons.currency_exchange,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
+                  tooltip: 'Currency & Tip Cheat-Sheet',
+                  onPressed: () => Get.to(() => const CurrencyCheatSheetView()),
+                ),
                 DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: currency,

@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../core/storage/app_database.dart';
 import '../models/activity_model.dart';
+import '../models/currency_rate_model.dart';
 import '../models/document_model.dart';
 import '../models/expense_model.dart';
 import '../models/jetlag_plan_model.dart';
@@ -274,6 +275,49 @@ class LocalStorageDatasource {
       {'shift_days_json': updatedPlan.toMap()['shift_days_json']},
       where: 'id = ?',
       whereArgs: [planId],
+    );
+  }
+
+  // Currency Rates
+  Future<List<CurrencyRateModel>> getStoredCurrencyRates() async {
+    final db = await _db;
+    final results = await db.query('currency_rates');
+    return results.map((m) => CurrencyRateModel.fromMap(m)).toList();
+  }
+
+  Future<CurrencyRateModel?> getCurrencyRate(String base, String target) async {
+    final db = await _db;
+    final id = '${base}_$target';
+    final results = await db.query(
+      'currency_rates',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (results.isEmpty) return null;
+    return CurrencyRateModel.fromMap(results.first);
+  }
+
+  Future<void> insertCurrencyRate(CurrencyRateModel rate) async {
+    final db = await _db;
+    await db.insert(
+      'currency_rates',
+      rate.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> updateCurrencySpread(
+    String base,
+    String target,
+    double spreadPercent,
+  ) async {
+    final db = await _db;
+    final id = '${base}_$target';
+    await db.update(
+      'currency_rates',
+      {'spread_percent': spreadPercent},
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 }

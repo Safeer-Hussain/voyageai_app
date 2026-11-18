@@ -1,6 +1,6 @@
 class AppConstants {
   static const String appName = 'VoyageAI';
-  static const String appVersion = '1.0.0+1';
+  static const String appVersion = '1.0.1+2';
   static const String appBuild = 'Enterprise Edition';
 
   // Platform Channels

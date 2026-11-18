@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/itinerary_controller.dart';
+import '../../currency/views/currency_cheat_sheet_view.dart';
 import '../../jetlag/views/jetlag_planner_view.dart';
 import '../../packing/views/packing_checklist_view.dart';
 import 'widgets/activity_card.dart';
@@ -204,6 +205,14 @@ class ItineraryView extends StatelessWidget {
                       },
                     ),
                   ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.currency_exchange,
+                    color: colorScheme.primary,
+                  ),
+                  tooltip: 'Currency & Tip Cheat-Sheet',
+                  onPressed: () => Get.to(() => const CurrencyCheatSheetView()),
                 ),
                 IconButton(
                   icon: Icon(

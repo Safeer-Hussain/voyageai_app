@@ -139,6 +139,17 @@ class AppDatabase {
         shift_days_json TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS currency_rates (
+        id TEXT PRIMARY KEY,
+        base_currency TEXT NOT NULL,
+        target_currency TEXT NOT NULL,
+        rate REAL NOT NULL,
+        spread_percent REAL NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
   }
 
   Future<void> seedInitialDataIfEmpty() async {
@@ -172,6 +183,17 @@ class AppDatabase {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS currency_rates (
+        id TEXT PRIMARY KEY,
+        base_currency TEXT NOT NULL,
+        target_currency TEXT NOT NULL,
+        rate REAL NOT NULL,
+        spread_percent REAL NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
     final tripsCount = Sqflite.firstIntValue(
       await db.rawQuery('SELECT COUNT(*) FROM trips'),
     );
@@ -200,6 +222,9 @@ class AppDatabase {
       for (final plan in MockExpeditions.initialJetlagPlans) {
         batch.insert('jetlag_plans', plan);
       }
+      for (final rate in MockExpeditions.initialCurrencyRates) {
+        batch.insert('currency_rates', rate);
+      }
 
       await batch.commit(noResult: true);
     } else {
@@ -224,6 +249,17 @@ class AppDatabase {
         }
         await batch.commit(noResult: true);
       }
+
+      final currencyCount = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM currency_rates'),
+      );
+      if (currencyCount == null || currencyCount == 0) {
+        final batch = db.batch();
+        for (final rate in MockExpeditions.initialCurrencyRates) {
+          batch.insert('currency_rates', rate);
+        }
+        await batch.commit(noResult: true);
+      }
     }
   }
 
@@ -235,6 +271,7 @@ class AppDatabase {
     await db.delete('expenses');
     await db.delete('packing_items');
     await db.delete('jetlag_plans');
+    await db.delete('currency_rates');
     await db.delete('trips');
   }
 }
