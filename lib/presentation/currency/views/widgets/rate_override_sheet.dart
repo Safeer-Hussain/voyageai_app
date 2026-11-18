@@ -3,25 +3,26 @@ import 'package:get/get.dart';
 
 import '../../controllers/currency_cheat_sheet_controller.dart';
 
-class RateCalibrationSheet extends StatefulWidget {
-  const RateCalibrationSheet({super.key});
+class RateOverrideSheet extends StatefulWidget {
+  const RateOverrideSheet({super.key});
 
   @override
-  State<RateCalibrationSheet> createState() => _RateCalibrationSheetState();
+  State<RateOverrideSheet> createState() => _RateOverrideSheetState();
 }
 
-class _RateCalibrationSheetState extends State<RateCalibrationSheet> {
+class _RateOverrideSheetState extends State<RateOverrideSheet> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _rateController;
-  late double _spread;
+  late TextEditingController _rateController;
+  late CurrencyCheatSheetController _ctrl;
 
   @override
   void initState() {
     super.initState();
-    final ctrl = Get.find<CurrencyCheatSheetController>();
-    final rate = ctrl.currentRate.value?.rate ?? 1.0;
-    _rateController = TextEditingController(text: rate.toStringAsFixed(4));
-    _spread = ctrl.spreadPercent.value;
+    _ctrl = Get.find<CurrencyCheatSheetController>();
+    final currentRate = _ctrl.rates[_ctrl.targetCurrency.value] ?? 1.0;
+    _rateController = TextEditingController(
+      text: currentRate.toStringAsFixed(2),
+    );
   }
 
   @override
@@ -30,12 +31,16 @@ class _RateCalibrationSheetState extends State<RateCalibrationSheet> {
     super.dispose();
   }
 
+  void _applyFeePercentage(double pct) {
+    final current = double.tryParse(_rateController.text) ?? 1.0;
+    final adjusted = current * (1.0 + (pct / 100.0));
+    _rateController.text = adjusted.toStringAsFixed(2);
+  }
+
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
-      final ctrl = Get.find<CurrencyCheatSheetController>();
-      final newRate = double.tryParse(_rateController.text) ?? 1.0;
-      ctrl.updateCustomRate(newRate);
-      ctrl.setSpreadPercent(_spread);
+      final newRate = double.tryParse(_rateController.text.trim()) ?? 1.0;
+      _ctrl.updateCustomRate(newRate);
       Navigator.of(context).pop();
     }
   }
@@ -43,7 +48,7 @@ class _RateCalibrationSheetState extends State<RateCalibrationSheet> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final ctrl = Get.find<CurrencyCheatSheetController>();
+    final target = _ctrl.targetCurrency.value;
 
     return SafeArea(
       child: Padding(
@@ -70,7 +75,7 @@ class _RateCalibrationSheetState extends State<RateCalibrationSheet> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Calibrate Exchange Rate & Spread',
+                  'Calibrate Street Cash Rate ($target)',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -79,7 +84,7 @@ class _RateCalibrationSheetState extends State<RateCalibrationSheet> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Adjust the benchmark exchange rate and include ATM or credit card foreign transaction fee buffers.',
+                  'Adjust the exchange rate to reflect real street currency booths or bank foreign transaction fee surcharges.',
                   style: TextStyle(
                     fontSize: 11,
                     color: colorScheme.onSurfaceVariant,
@@ -92,59 +97,54 @@ class _RateCalibrationSheetState extends State<RateCalibrationSheet> {
                     decimal: true,
                   ),
                   decoration: InputDecoration(
-                    labelText:
-                        '1 ${ctrl.baseCurrency.value} in ${ctrl.targetCurrency.value}',
-                    suffixText: ctrl.targetCurrency.value,
+                    labelText: '1 USD to $target Exchange Rate',
+                    hintText: 'e.g. 280.50',
+                    suffixText: target,
                     border: const OutlineInputBorder(),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Enter exchange rate';
+                      return 'Please enter a valid exchange rate';
                     }
-                    final numVal = double.tryParse(val);
-                    if (numVal == null || numVal <= 0) {
-                      return 'Must be a positive decimal number';
+                    final num = double.tryParse(val.trim());
+                    if (num == null || num <= 0) {
+                      return 'Rate must be a positive number';
                     }
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Bank / ATM Spread Margin:',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      '${_spread.toStringAsFixed(1)}%',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ),
-                Slider(
-                  value: _spread,
-                  min: 0.0,
-                  max: 5.0,
-                  divisions: 10,
-                  label: '${_spread.toStringAsFixed(1)}%',
-                  activeColor: colorScheme.primary,
-                  onChanged: (val) => setState(() => _spread = val),
-                ),
+                const SizedBox(height: 12),
                 Text(
-                  'Typical bank conversion spread: 1.5% to 3.5% above interbank mid-market.',
+                  'Quick Bank Fee Markup (+1% - +3% FX Fee):',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
                     color: colorScheme.onSurfaceVariant,
                   ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [1.0, 2.0, 3.0].map((fee) {
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3.0),
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            side: BorderSide(color: colorScheme.outlineVariant),
+                          ),
+                          onPressed: () => _applyFeePercentage(fee),
+                          child: Text(
+                            '+$fee% Fee',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
                 const SizedBox(height: 20),
                 FilledButton(
@@ -155,8 +155,19 @@ class _RateCalibrationSheetState extends State<RateCalibrationSheet> {
                     foregroundColor: colorScheme.onPrimary,
                   ),
                   child: const Text(
-                    'Save Calibrated Rate',
+                    'Save Calibrated Exchange Rate',
                     style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.restart_alt, size: 16),
+                    label: const Text('Reset to Official Reference Rate'),
+                    onPressed: () {
+                      _ctrl.resetRates();
+                      Navigator.of(context).pop();
+                    },
                   ),
                 ),
               ],

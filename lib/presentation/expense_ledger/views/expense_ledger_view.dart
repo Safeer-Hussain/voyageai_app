@@ -208,15 +208,6 @@ class ExpenseLedgerView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton(
-                  icon: Icon(
-                    Icons.currency_exchange,
-                    size: 18,
-                    color: colorScheme.primary,
-                  ),
-                  tooltip: 'Currency & Tip Cheat-Sheet',
-                  onPressed: () => Get.to(() => const CurrencyCheatSheetView()),
-                ),
                 DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: currency,
@@ -238,6 +229,17 @@ class ExpenseLedgerView extends StatelessWidget {
                       if (val != null) ctrl.setCurrency(val);
                     },
                   ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: Icon(
+                    Icons.calculate_outlined,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
+                  tooltip: 'Currency & Tip Calculator',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => Get.to(() => const CurrencyCheatSheetView()),
                 ),
               ],
             ),

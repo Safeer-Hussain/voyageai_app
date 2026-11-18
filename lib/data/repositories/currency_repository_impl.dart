@@ -1,53 +1,72 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../core/constants/app_constants.dart';
-import '../../domain/entities/currency_cheat_sheet.dart';
 import '../../domain/repositories/currency_repository.dart';
 import '../datasources/local_storage_datasource.dart';
-import '../models/currency_rate_model.dart';
 
 class CurrencyRepositoryImpl implements CurrencyRepository {
   final LocalStorageDatasource _datasource;
+  final SharedPreferences _prefs;
 
-  CurrencyRepositoryImpl(this._datasource);
+  static const String _prefPrefix = 'voyage_custom_rate_';
+
+  CurrencyRepositoryImpl(this._datasource, this._prefs);
 
   @override
-  Future<List<CurrencyRate>> getStoredRates() async {
-    return await _datasource.getStoredCurrencyRates();
+  Future<Map<String, double>> getExchangeRates() async {
+    final Map<String, double> rates = Map.from(AppConstants.usdExchangeRates);
+
+    // Support additional major travel currencies
+    rates.putIfAbsent('GBP', () => 0.79);
+    rates.putIfAbsent('CHF', () => 0.90);
+    rates.putIfAbsent('CAD', () => 1.39);
+    rates.putIfAbsent('AUD', () => 1.54);
+
+    for (final code in rates.keys.toList()) {
+      final customRate = _prefs.getDouble('$_prefPrefix$code');
+      if (customRate != null && customRate > 0) {
+        rates[code] = customRate;
+      }
+    }
+
+    return rates;
   }
 
   @override
-  Future<CurrencyRate?> getRate(String base, String target) async {
-    final fromDb = await _datasource.getCurrencyRate(base, target);
-    if (fromDb != null) return fromDb;
-
-    // Calculate cross-currency rate using AppConstants.usdExchangeRates
-    final baseToUsd = AppConstants.usdExchangeRates[base] ?? 1.0;
-    final targetToUsd = AppConstants.usdExchangeRates[target] ?? 1.0;
-    final calculatedRate = targetToUsd / baseToUsd;
-
-    final rateEntity = CurrencyRate(
-      baseCurrency: base,
-      targetCurrency: target,
-      rate: calculatedRate,
-      spreadPercent: 0.0,
-      updatedAt: DateTime.now().millisecondsSinceEpoch,
-    );
-
-    await saveRate(rateEntity);
-    return rateEntity;
+  Future<void> updateCustomRate(String currencyCode, double rateToUsd) async {
+    await _prefs.setDouble('$_prefPrefix$currencyCode', rateToUsd);
   }
 
   @override
-  Future<void> saveRate(CurrencyRate rate) async {
-    final model = CurrencyRateModel.fromEntity(rate);
-    await _datasource.insertCurrencyRate(model);
+  Future<void> resetRates() async {
+    final keys = _prefs.getKeys().where((k) => k.startsWith(_prefPrefix));
+    for (final key in keys) {
+      await _prefs.remove(key);
+    }
   }
 
   @override
-  Future<void> updateSpread(
+  Future<List<Map<String, dynamic>>> getSavedConversions() async {
+    return await _datasource.getSavedCurrencyConversions();
+  }
+
+  @override
+  Future<void> saveConversion(
     String base,
     String target,
-    double spreadPercent,
+    double baseAmount,
+    double convertedAmount,
   ) async {
-    await _datasource.updateCurrencySpread(base, target, spreadPercent);
+    await _datasource.insertCurrencyConversion(
+      base,
+      target,
+      baseAmount,
+      convertedAmount,
+    );
+  }
+
+  @override
+  Future<void> deleteConversion(int id) async {
+    await _datasource.deleteCurrencyConversion(id);
   }
 }

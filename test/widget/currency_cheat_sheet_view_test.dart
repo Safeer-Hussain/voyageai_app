@@ -15,8 +15,8 @@ import 'package:voyage_ai_app/domain/repositories/jetlag_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/packing_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/telemetry_repository.dart';
 import 'package:voyage_ai_app/presentation/currency/views/currency_cheat_sheet_view.dart';
-import 'package:voyage_ai_app/presentation/currency/views/widgets/cheat_sheet_grid.dart';
-import 'package:voyage_ai_app/presentation/currency/views/widgets/tip_cockpit.dart';
+import 'package:voyage_ai_app/presentation/currency/views/widgets/merchant_tip_calculator.dart';
+import 'package:voyage_ai_app/presentation/currency/views/widgets/quick_reference_table.dart';
 
 import '../unit/ai_concierge_controller_test.dart';
 import '../unit/currency_cheat_sheet_controller_test.dart';
@@ -91,7 +91,7 @@ void main() {
   });
 
   testWidgets(
-    'CurrencyCheatSheetView renders unique FAB heroTag, cheat sheet grid and tip cockpit',
+    'CurrencyCheatSheetView renders unique FAB heroTag, matrix, and tip cockpit',
     (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
@@ -110,14 +110,15 @@ void main() {
       final fabFinder = find.byType(FloatingActionButton);
       expect(fabFinder, findsOneWidget);
       final fab = tester.widget<FloatingActionButton>(fabFinder);
-      expect(fab.heroTag, 'fab_currency_adjust_rate');
+      expect(fab.heroTag, 'fab_currency_rate_override');
 
-      // Verify CheatSheetGrid and TipCockpit presence
-      expect(find.byType(CheatSheetGrid), findsOneWidget);
-      expect(find.byType(TipCockpit), findsOneWidget);
+      // Verify cockpit widgets presence
+      expect(find.byType(QuickReferenceTable), findsOneWidget);
+      expect(find.byType(MerchantTipCalculator), findsOneWidget);
 
-      // Verify benchmark banner rendered
-      expect(find.text('OFFLINE RATE BENCHMARK'), findsOneWidget);
+      // Verify text presence
+      expect(find.text('CASH CHEAT-SHEET MATRIX'), findsOneWidget);
+      expect(find.text('MULTI-MERCHANT TIP & SPLIT COCKPIT'), findsOneWidget);
 
       // Verify zero exceptions
       expect(tester.takeException(), isNull);
@@ -140,19 +141,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Verify landscape two-pane layout rendered
-      expect(find.byType(CheatSheetGrid), findsOneWidget);
+      // Verify two-pane layout rendered in landscape
+      expect(find.byType(MerchantTipCalculator), findsOneWidget);
+      expect(find.byType(QuickReferenceTable), findsOneWidget);
       expect(find.byType(VerticalDivider), findsOneWidget);
-      expect(find.byType(TipCockpit), findsOneWidget);
 
       // Verify no RenderFlex overflow
       expect(tester.takeException(), isNull);
-
-      // Tap on reciprocal toggle in landscape
-      await tester.tap(find.text('STANDARD'));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      expect(find.text('INVERTED'), findsOneWidget);
     },
   );
 }

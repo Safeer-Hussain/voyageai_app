@@ -1,10 +1,8 @@
-import 'dart:math';
-
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/utils/app_feedback.dart';
-import '../../../domain/entities/currency_cheat_sheet.dart';
+import '../../../domain/entities/currency_rate.dart';
+import '../../../domain/entities/merchant_tip.dart';
 import '../../../domain/repositories/currency_repository.dart';
 
 class CurrencyCheatSheetController extends GetxController {
@@ -12,22 +10,19 @@ class CurrencyCheatSheetController extends GetxController {
 
   CurrencyCheatSheetController(this._repository);
 
+  final RxMap<String, double> rates = <String, double>{}.obs;
   final RxString baseCurrency = 'USD'.obs;
   final RxString targetCurrency = 'PKR'.obs;
-  final Rxn<CurrencyRate> currentRate = Rxn<CurrencyRate>();
-  final RxDouble spreadPercent =
-      0.0.obs; // Bank ATM margin spread (e.g. 0% - 5%)
-  final RxBool isReciprocal = false.obs; // Inverts conversion direction
-  final RxBool isLoading = false.obs;
-
-  // Tip Calculator state
   final RxDouble billAmount = 2500.0.obs;
-  final RxDouble selectedTipPercent = 15.0.obs;
-  final RxString selectedCategory = 'Dining & Bistro'.obs;
+  final Rx<MerchantType> merchantType = MerchantType.dining.obs;
+  final RxDouble tipPercentage = 10.0.obs;
   final RxInt splitCount = 1.obs;
-  final RxBool roundUpToNote = false.obs;
+  final Rx<RoundingMode> roundingMode = RoundingMode.exact.obs;
+  final RxBool isLoading = false.obs;
+  final RxList<Map<String, dynamic>> savedConversions =
+      <Map<String, dynamic>>[].obs;
 
-  static const List<String> supportedCurrencies = [
+  static const List<String> availableCurrencies = [
     'USD',
     'PKR',
     'EUR',
@@ -35,236 +30,333 @@ class CurrencyCheatSheetController extends GetxController {
     'AED',
     'GBP',
     'CHF',
-  ];
-
-  static const List<MerchantTipPreset> tipPresets = [
-    MerchantTipPreset(
-      category: 'Dining & Bistro',
-      title: 'Dining & Bistro',
-      defaultTipPercentage: 15.0,
-      etiquetteNotice: 'Sit-down restaurants: 10-15% is customary in international hubs. In Japan, tipping is declined.',
-    ),
-    MerchantTipPreset(
-      category: 'Expedition Guide & Porter',
-      title: 'Guide & Porter',
-      defaultTipPercentage: 12.0,
-      etiquetteNotice: 'High-altitude alpine treks: 10-15% of expedition fee or fixed daily stipend is standard.',
-    ),
-    MerchantTipPreset(
-      category: 'Taxi & Mountain Transit',
-      title: 'Transit & Driver',
-      defaultTipPercentage: 10.0,
-      etiquetteNotice: 'Round up fare to the nearest paper note or add 10% for rough terrain driving.',
-    ),
-    MerchantTipPreset(
-      category: 'Hotel & Hospitality',
-      title: 'Hotel & Porter',
-      defaultTipPercentage: 8.0,
-      etiquetteNotice: 'Bellhop: 1-2 USD equivalent per bag. Housekeeping: 2-5 USD per night.',
-    ),
-    MerchantTipPreset(
-      category: 'Counter & Street Food',
-      title: 'Street Food',
-      defaultTipPercentage: 0.0,
-      etiquetteNotice: 'Bazaars and street stalls: No gratuity expected. Exact change is appreciated.',
-    ),
+    'CAD',
+    'AUD',
   ];
 
   static const List<double> standardDenominations = [
-    1,
-    5,
-    10,
-    20,
-    50,
-    100,
-    250,
-    500,
-    1000,
-    5000,
+    1.0,
+    5.0,
+    10.0,
+    20.0,
+    50.0,
+    100.0,
+    250.0,
+    500.0,
+    1000.0,
   ];
 
   @override
   void onInit() {
     super.onInit();
-    loadRate();
+    loadRates();
+    loadSavedConversions();
   }
 
-  Future<void> loadRate() async {
+  Future<void> loadRates() async {
     isLoading.value = true;
     try {
-      final rate = await _repository.getRate(
-        baseCurrency.value,
-        targetCurrency.value,
-      );
-      if (rate != null) {
-        currentRate.value = rate;
-        spreadPercent.value = rate.spreadPercent;
-      }
+      final loadedRates = await _repository.getExchangeRates();
+      rates.assignAll(loadedRates);
     } finally {
       isLoading.value = false;
     }
   }
 
-  void switchCurrencies() {
-    final temp = baseCurrency.value;
-    baseCurrency.value = targetCurrency.value;
-    targetCurrency.value = temp;
-    loadRate();
+  Future<void> loadSavedConversions() async {
+    final list = await _repository.getSavedConversions();
+    savedConversions.assignAll(list);
   }
 
-  void toggleReciprocal() {
-    isReciprocal.value = !isReciprocal.value;
+  double get directExchangeRate {
+    final baseToUsd = rates[baseCurrency.value] ?? 1.0;
+    final targetToUsd = rates[targetCurrency.value] ?? 1.0;
+    if (baseToUsd <= 0) return 1.0;
+    return targetToUsd / baseToUsd;
   }
 
-  void setBaseCurrency(String currency) {
-    if (currency == targetCurrency.value) {
-      switchCurrencies();
-      return;
-    }
-    baseCurrency.value = currency;
-    loadRate();
+  double get inverseExchangeRate {
+    final rate = directExchangeRate;
+    if (rate <= 0) return 1.0;
+    return 1.0 / rate;
   }
 
-  void setTargetCurrency(String currency) {
-    if (currency == baseCurrency.value) {
-      switchCurrencies();
-      return;
-    }
-    targetCurrency.value = currency;
-    loadRate();
+  double convert(double amount, String from, String to) {
+    final fromRate = rates[from] ?? 1.0;
+    final toRate = rates[to] ?? 1.0;
+    if (fromRate <= 0) return amount;
+    final amountInUsd = amount / fromRate;
+    return amountInUsd * toRate;
   }
 
-  Future<void> setSpreadPercent(double spread) async {
-    spreadPercent.value = spread;
-    if (currentRate.value != null) {
-      final updated = currentRate.value!.copyWith(spreadPercent: spread);
-      currentRate.value = updated;
-      await _repository.updateSpread(
-        baseCurrency.value,
-        targetCurrency.value,
-        spread,
-      );
-    }
-  }
-
-  Future<void> updateCustomRate(double newRate) async {
-    if (newRate <= 0) return;
-    final updated = CurrencyRate(
-      baseCurrency: baseCurrency.value,
-      targetCurrency: targetCurrency.value,
-      rate: newRate,
-      spreadPercent: spreadPercent.value,
-      updatedAt: DateTime.now().millisecondsSinceEpoch,
-    );
-    currentRate.value = updated;
-    await _repository.saveRate(updated);
-
-    AppFeedback.showSuccess(
-      title: 'Exchange Rate Calibrated',
-      message:
-          '1 ${baseCurrency.value} = ${newRate.toStringAsFixed(2)} ${targetCurrency.value}',
-    );
-  }
-
-  // Cheat-Sheet Denominations
-  List<CheatSheetDenomination> get cheatSheetDenominations {
-    final rate = currentRate.value;
-    if (rate == null) return [];
-
-    final activeBase = isReciprocal.value
-        ? targetCurrency.value
-        : baseCurrency.value;
-    final activeTarget = isReciprocal.value
-        ? baseCurrency.value
-        : targetCurrency.value;
-    final multiplier = isReciprocal.value
-        ? (rate.effectiveRate > 0 ? 1 / rate.effectiveRate : 1.0)
-        : rate.effectiveRate;
-
-    final numberFormat = NumberFormat('#,##0.00');
-
+  List<CheatSheetRow> get cheatSheetRows {
+    final rate = directExchangeRate;
     return standardDenominations.map((denom) {
-      final converted = denom * multiplier;
-      return CheatSheetDenomination(
+      final converted = denom * rate;
+      return CheatSheetRow(
         baseAmount: denom,
         convertedAmount: converted,
-        formattedBase: '$denom $activeBase',
-        formattedConverted: '${numberFormat.format(converted)} $activeTarget',
+        formattedBase: '${denom.toStringAsFixed(0)} ${baseCurrency.value}',
+        formattedConverted:
+            '${formatAmount(converted)} ${targetCurrency.value}',
       );
     }).toList();
   }
 
-  // Tip calculation methods
-  void setBillAmount(double amount) {
-    billAmount.value = max(0.0, amount);
+  List<CheatSheetRow> get inverseCheatSheetRows {
+    final rate = inverseExchangeRate;
+    return standardDenominations.map((denom) {
+      final converted = denom * rate;
+      return CheatSheetRow(
+        baseAmount: denom,
+        convertedAmount: converted,
+        formattedBase: '${denom.toStringAsFixed(0)} ${targetCurrency.value}',
+        formattedConverted: '${formatAmount(converted)} ${baseCurrency.value}',
+      );
+    }).toList();
   }
 
-  void setTipPercent(double percent) {
-    selectedTipPercent.value = max(0.0, percent);
-  }
+  TipCalculationResult get tipCalculation {
+    final bill = billAmount.value;
+    final tipPct = tipPercentage.value;
+    final rawTip = bill * (tipPct / 100.0);
+    double total = bill + rawTip;
+    final splits = splitCount.value.clamp(1, 20);
 
-  void selectCategory(String cat) {
-    selectedCategory.value = cat;
-    final preset = tipPresets.firstWhere(
-      (p) => p.category == cat,
-      orElse: () => tipPresets.first,
+    double perPersonTotal = total / splits;
+    double perPersonTip = rawTip / splits;
+    double perPersonBill = bill / splits;
+
+    if (roundingMode.value == RoundingMode.roundUpTotal) {
+      total = total.ceilToDouble();
+      perPersonTotal = total / splits;
+    } else if (roundingMode.value == RoundingMode.roundUpPerPerson) {
+      perPersonTotal = perPersonTotal.ceilToDouble();
+      total = perPersonTotal * splits;
+    }
+
+    final equivalentBase = convert(
+      total,
+      targetCurrency.value,
+      baseCurrency.value,
     );
-    selectedTipPercent.value = preset.defaultTipPercentage;
+
+    return TipCalculationResult(
+      billAmount: bill,
+      tipPercentage: tipPct,
+      tipAmount: rawTip,
+      totalAmount: total,
+      splitCount: splits,
+      perPersonBill: perPersonBill,
+      perPersonTip: perPersonTip,
+      perPersonTotal: perPersonTotal,
+      roundingMode: roundingMode.value,
+      currencyCode: targetCurrency.value,
+      equivalentBaseTotal: equivalentBase,
+      baseCurrencyCode: baseCurrency.value,
+    );
+  }
+
+  TippingEtiquette get tippingEtiquette {
+    final cur = targetCurrency.value;
+    switch (cur) {
+      case 'JPY':
+        return const TippingEtiquette(
+          countryOrCurrency: 'Japan (JPY)',
+          generalGuidance: 'Tipping is not customary in Japan. Good service is standard practice and included. Leaving extra cash can cause confusion.',
+          recommendedDiningPct: 0.0,
+          recommendedTaxiPct: 0.0,
+          recommendedPorterAmount: 0.0,
+          recommendedGuidePct: 0.0,
+          isTippingCustomary: false,
+        );
+      case 'PKR':
+        return const TippingEtiquette(
+          countryOrCurrency: 'Pakistan (PKR)',
+          generalGuidance: 'Tipping 5% to 10% is customary in sit-down restaurants and tea houses. Cash gratuities for porters and drivers are appreciated.',
+          recommendedDiningPct: 10.0,
+          recommendedTaxiPct: 5.0,
+          recommendedPorterAmount: 200.0,
+          recommendedGuidePct: 10.0,
+          isTippingCustomary: true,
+        );
+      case 'EUR':
+        return const TippingEtiquette(
+          countryOrCurrency: 'Eurozone (EUR)',
+          generalGuidance: 'Service is typically included (service compris). Rounding up the bill or leaving 5% to 10% cash for attentive service is customary.',
+          recommendedDiningPct: 7.5,
+          recommendedTaxiPct: 5.0,
+          recommendedPorterAmount: 2.0,
+          recommendedGuidePct: 10.0,
+          isTippingCustomary: true,
+        );
+      case 'AED':
+        return const TippingEtiquette(
+          countryOrCurrency: 'UAE (AED)',
+          generalGuidance: '10% to 15% is standard practice in restaurants. For taxis, round up to the nearest 5 or 10 AED note.',
+          recommendedDiningPct: 12.0,
+          recommendedTaxiPct: 5.0,
+          recommendedPorterAmount: 10.0,
+          recommendedGuidePct: 10.0,
+          isTippingCustomary: true,
+        );
+      case 'GBP':
+        return const TippingEtiquette(
+          countryOrCurrency: 'United Kingdom (GBP)',
+          generalGuidance: '10% to 12.5% is standard for dining if not already added as a discretionary service charge on the receipt.',
+          recommendedDiningPct: 12.5,
+          recommendedTaxiPct: 10.0,
+          recommendedPorterAmount: 2.0,
+          recommendedGuidePct: 10.0,
+          isTippingCustomary: true,
+        );
+      case 'CHF':
+        return const TippingEtiquette(
+          countryOrCurrency: 'Switzerland (CHF)',
+          generalGuidance: 'Service charges are included in food and beverage prices by federal law. Rounding up to the nearest franc is common.',
+          recommendedDiningPct: 5.0,
+          recommendedTaxiPct: 0.0,
+          recommendedPorterAmount: 3.0,
+          recommendedGuidePct: 5.0,
+          isTippingCustomary: false,
+        );
+      default: // USD and others
+        return const TippingEtiquette(
+          countryOrCurrency: 'United States & Global Standard',
+          generalGuidance: '15% to 20% is customary for sit-down dining. \$2 to \$5 per bag for hotel luggage porters. 10% to 15% for taxi drivers.',
+          recommendedDiningPct: 18.0,
+          recommendedTaxiPct: 15.0,
+          recommendedPorterAmount: 3.0,
+          recommendedGuidePct: 15.0,
+          isTippingCustomary: true,
+        );
+    }
+  }
+
+  void swapCurrencies() {
+    final temp = baseCurrency.value;
+    baseCurrency.value = targetCurrency.value;
+    targetCurrency.value = temp;
+  }
+
+  void setBaseCurrency(String code) {
+    if (code == targetCurrency.value) {
+      swapCurrencies();
+    } else {
+      baseCurrency.value = code;
+    }
+  }
+
+  void setTargetCurrency(String code) {
+    if (code == baseCurrency.value) {
+      swapCurrencies();
+    } else {
+      targetCurrency.value = code;
+    }
+  }
+
+  void setBillAmount(double val) {
+    billAmount.value = val.clamp(0.0, 10000000.0);
+  }
+
+  void setTipPercentage(double pct) {
+    tipPercentage.value = pct.clamp(0.0, 50.0);
+  }
+
+  void setMerchantType(MerchantType type) {
+    merchantType.value = type;
+    final etiquette = tippingEtiquette;
+    switch (type) {
+      case MerchantType.dining:
+        tipPercentage.value = etiquette.recommendedDiningPct;
+        break;
+      case MerchantType.taxi:
+        tipPercentage.value = etiquette.recommendedTaxiPct;
+        break;
+      case MerchantType.porter:
+        tipPercentage.value = 5.0;
+        break;
+      case MerchantType.tourGuide:
+        tipPercentage.value = etiquette.recommendedGuidePct;
+        break;
+      case MerchantType.cafe:
+        tipPercentage.value = etiquette.isTippingCustomary ? 5.0 : 0.0;
+        break;
+    }
   }
 
   void setSplitCount(int count) {
-    splitCount.value = count.clamp(1, 10);
+    splitCount.value = count.clamp(1, 20);
   }
 
-  void toggleRoundUp() {
-    roundUpToNote.value = !roundUpToNote.value;
+  void incrementSplit() {
+    if (splitCount.value < 20) splitCount.value++;
   }
 
-  MerchantTipPreset get activePreset {
-    return tipPresets.firstWhere(
-      (p) => p.category == selectedCategory.value,
-      orElse: () => tipPresets.first,
+  void decrementSplit() {
+    if (splitCount.value > 1) splitCount.value--;
+  }
+
+  void setRoundingMode(RoundingMode mode) {
+    roundingMode.value = mode;
+  }
+
+  Future<void> updateCustomRate(double newRateToUsd) async {
+    rates[targetCurrency.value] = newRateToUsd;
+    await _repository.updateCustomRate(targetCurrency.value, newRateToUsd);
+    rates.refresh();
+
+    AppFeedback.showSuccess(
+      title: 'Exchange Rate Updated',
+      message:
+          '1 USD = $newRateToUsd ${targetCurrency.value} calibrated successfully.',
     );
   }
 
-  TipCalculation get tipCalculation {
-    final bill = billAmount.value;
-    final tipPct = selectedTipPercent.value;
-    final tip = bill * (tipPct / 100);
-    final rawTotal = bill + tip;
+  Future<void> resetRates() async {
+    await _repository.resetRates();
+    await loadRates();
 
-    double roundedTotal = rawTotal;
-    double roundUpDiff = 0.0;
+    AppFeedback.showInfo(
+      title: 'Rates Reset',
+      message: 'Official reference exchange rates restored.',
+    );
+  }
 
-    if (roundUpToNote.value && rawTotal > 0) {
-      if (rawTotal >= 500) {
-        // Round to nearest 100
-        roundedTotal = (rawTotal / 100).ceil() * 100.0;
-      } else if (rawTotal >= 50) {
-        // Round to nearest 10
-        roundedTotal = (rawTotal / 10).ceil() * 10.0;
-      } else {
-        // Round to nearest whole integer
-        roundedTotal = rawTotal.ceilToDouble();
-      }
-      roundUpDiff = roundedTotal - rawTotal;
+  Future<void> saveCurrentConversion() async {
+    final calc = tipCalculation;
+    await _repository.saveConversion(
+      targetCurrency.value,
+      baseCurrency.value,
+      calc.totalAmount,
+      calc.equivalentBaseTotal,
+    );
+    await loadSavedConversions();
+
+    AppFeedback.showSuccess(
+      title: 'Conversion Saved',
+      message:
+          '${formatAmount(calc.totalAmount)} ${targetCurrency.value} saved to vault ledger.',
+    );
+  }
+
+  Future<void> deleteSavedConversion(int id) async {
+    await _repository.deleteConversion(id);
+    await loadSavedConversions();
+
+    AppFeedback.showInfo(
+      title: 'Entry Removed',
+      message: 'Saved conversion deleted from history.',
+    );
+  }
+
+  String formatAmount(double amount) {
+    if (amount >= 1000) {
+      return amount.toStringAsFixed(1);
+    } else if (amount >= 1) {
+      return amount.toStringAsFixed(2);
+    } else {
+      return amount.toStringAsFixed(3);
     }
-
-    final effectiveTip = tip + roundUpDiff;
-    final effectiveTotal = roundedTotal;
-    final splits = splitCount.value;
-
-    return TipCalculation(
-      billAmount: bill,
-      tipPercentage: tipPct,
-      tipAmount: effectiveTip,
-      totalWithTip: effectiveTotal,
-      splitCount: splits,
-      perPersonBill: bill / splits,
-      perPersonTip: effectiveTip / splits,
-      perPersonTotal: effectiveTotal / splits,
-      roundedTotal: roundedTotal,
-      roundUpDifference: roundUpDiff,
-    );
   }
 }

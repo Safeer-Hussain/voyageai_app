@@ -1,71 +1,67 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
-import 'package:voyage_ai_app/domain/entities/currency_cheat_sheet.dart';
+import 'package:voyage_ai_app/domain/entities/merchant_tip.dart';
 import 'package:voyage_ai_app/domain/repositories/currency_repository.dart';
 import 'package:voyage_ai_app/presentation/currency/controllers/currency_cheat_sheet_controller.dart';
 
 class MockCurrencyRepository implements CurrencyRepository {
-  final Map<String, CurrencyRate> rates = {
-    'USD_PKR': const CurrencyRate(
-      baseCurrency: 'USD',
-      targetCurrency: 'PKR',
-      rate: 278.50,
-      spreadPercent: 0.0,
-      updatedAt: 1000,
-    ),
-    'USD_EUR': const CurrencyRate(
-      baseCurrency: 'USD',
-      targetCurrency: 'EUR',
-      rate: 0.92,
-      spreadPercent: 0.0,
-      updatedAt: 1000,
-    ),
-    'PKR_USD': const CurrencyRate(
-      baseCurrency: 'PKR',
-      targetCurrency: 'USD',
-      rate: 0.00359,
-      spreadPercent: 0.0,
-      updatedAt: 1000,
-    ),
+  Map<String, double> rates = {
+    'USD': 1.0,
+    'PKR': 278.50,
+    'EUR': 0.92,
+    'JPY': 154.20,
+    'AED': 3.67,
+    'GBP': 0.79,
+    'CHF': 0.90,
   };
 
+  List<Map<String, dynamic>> saved = [];
+
   @override
-  Future<List<CurrencyRate>> getStoredRates() async {
-    return rates.values.toList();
+  Future<Map<String, double>> getExchangeRates() async => Map.from(rates);
+
+  @override
+  Future<void> updateCustomRate(String currencyCode, double rateToUsd) async {
+    rates[currencyCode] = rateToUsd;
   }
 
   @override
-  Future<CurrencyRate?> getRate(String base, String target) async {
-    final key = '${base}_$target';
-    if (rates.containsKey(key)) return rates[key];
-
-    final rate = CurrencyRate(
-      baseCurrency: base,
-      targetCurrency: target,
-      rate: 1.0,
-      spreadPercent: 0.0,
-      updatedAt: 2000,
-    );
-    rates[key] = rate;
-    return rate;
+  Future<void> resetRates() async {
+    rates = {
+      'USD': 1.0,
+      'PKR': 278.50,
+      'EUR': 0.92,
+      'JPY': 154.20,
+      'AED': 3.67,
+      'GBP': 0.79,
+      'CHF': 0.90,
+    };
   }
 
   @override
-  Future<void> saveRate(CurrencyRate rate) async {
-    final key = '${rate.baseCurrency}_${rate.targetCurrency}';
-    rates[key] = rate;
-  }
+  Future<List<Map<String, dynamic>>> getSavedConversions() async =>
+      List.from(saved);
 
   @override
-  Future<void> updateSpread(
+  Future<void> saveConversion(
     String base,
     String target,
-    double spreadPercent,
+    double baseAmount,
+    double convertedAmount,
   ) async {
-    final key = '${base}_$target';
-    if (rates.containsKey(key)) {
-      rates[key] = rates[key]!.copyWith(spreadPercent: spreadPercent);
-    }
+    saved.insert(0, {
+      'id': saved.length + 1,
+      'base_currency': base,
+      'target_currency': target,
+      'base_amount': baseAmount,
+      'converted_amount': convertedAmount,
+      'created_at': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  @override
+  Future<void> deleteConversion(int id) async {
+    saved.removeWhere((item) => item['id'] == id);
   }
 }
 
@@ -86,117 +82,125 @@ void main() {
   });
 
   group('CurrencyCheatSheetController Unit Tests', () {
-    test('Initial load retrieves stored exchange rate benchmark', () async {
-      await controller.loadRate();
-      expect(controller.currentRate.value, isNotNull);
-      expect(controller.baseCurrency.value, 'USD');
-      expect(controller.targetCurrency.value, 'PKR');
-      expect(controller.currentRate.value!.rate, 278.50);
-      expect(controller.spreadPercent.value, 0.0);
+    test(
+      'Initializes with default rates and calculates direct exchange rate',
+      () async {
+        await controller.loadRates();
+        expect(controller.baseCurrency.value, 'USD');
+        expect(controller.targetCurrency.value, 'PKR');
+        expect(controller.directExchangeRate, 278.50);
+        expect(controller.inverseExchangeRate, closeTo(1.0 / 278.50, 0.0001));
+      },
+    );
+
+    test('Swaps currencies and updates cross exchange rates', () async {
+      await controller.loadRates();
+      controller.swapCurrencies();
+
+      expect(controller.baseCurrency.value, 'PKR');
+      expect(controller.targetCurrency.value, 'USD');
+      expect(controller.directExchangeRate, closeTo(1.0 / 278.50, 0.0001));
     });
 
-    test('Generates denomination cheat-sheet intervals correctly', () async {
-      await controller.loadRate();
-      final denoms = controller.cheatSheetDenominations;
+    test(
+      'Generates cash cheat-sheet matrix with standard denominations',
+      () async {
+        await controller.loadRates();
+        final rows = controller.cheatSheetRows;
 
-      expect(
-        denoms.length,
-        CurrencyCheatSheetController.standardDenominations.length,
-      );
-      expect(denoms.first.baseAmount, 1.0);
-      expect(denoms.first.convertedAmount, closeTo(278.50, 0.01));
-      expect(denoms.first.formattedBase, '1.0 USD');
-      expect(denoms.first.formattedConverted.contains('278.50 PKR'), true);
+        expect(
+          rows.length,
+          CurrencyCheatSheetController.standardDenominations.length,
+        );
+        expect(rows.first.baseAmount, 1.0);
+        expect(rows.first.convertedAmount, 278.50);
+        expect(rows[1].baseAmount, 5.0);
+        expect(rows[1].convertedAmount, 1392.50);
+      },
+    );
 
-      // Check 100 USD denomination
-      final hundred = denoms.firstWhere((d) => d.baseAmount == 100.0);
-      expect(hundred.convertedAmount, closeTo(27850.0, 0.1));
-    });
-
-    test('Toggles reciprocal mode and inverts conversion multiplier', () async {
-      await controller.loadRate();
-      expect(controller.isReciprocal.value, false);
-
-      controller.toggleReciprocal();
-      expect(controller.isReciprocal.value, true);
-
-      final denoms = controller.cheatSheetDenominations;
-      expect(denoms.first.formattedBase, '1.0 PKR');
-      // 1 PKR = 1 / 278.50 USD = 0.00359 USD -> formats to ~0.00 USD
-      expect(denoms.first.convertedAmount, closeTo(1 / 278.50, 0.0001));
-    });
-
-    test('Applies bank ATM spread margin buffer accurately', () async {
-      await controller.loadRate();
-
-      // Apply 2.0% bank conversion spread
-      await controller.setSpreadPercent(2.0);
-      expect(controller.spreadPercent.value, 2.0);
-
-      // Effective rate = 278.50 * 1.02 = 284.07
-      expect(
-        controller.currentRate.value!.effectiveRate,
-        closeTo(284.07, 0.01),
-      );
-
-      final denoms = controller.cheatSheetDenominations;
-      final hundred = denoms.firstWhere((d) => d.baseAmount == 100.0);
-      expect(hundred.convertedAmount, closeTo(28407.0, 0.1));
-    });
-
-    test('Calibrates custom manual exchange rate', () async {
-      await controller.loadRate();
-
-      await controller.updateCustomRate(280.0);
-      expect(controller.currentRate.value!.rate, 280.0);
-
-      final denoms = controller.cheatSheetDenominations;
-      expect(denoms.first.convertedAmount, 280.0);
-    });
-
-    test('Computes multi-merchant tip and split bill breakdown', () {
-      controller.setBillAmount(2000.0);
-      controller.setTipPercent(15.0);
-      controller.setSplitCount(2);
+    test('Calculates tip and split amounts accurately for dining', () async {
+      await controller.loadRates();
+      controller.setBillAmount(1000.0);
+      controller.setTipPercentage(10.0);
+      controller.setMerchantType(MerchantType.dining);
+      controller.setRoundingMode(RoundingMode.exact);
 
       final calc = controller.tipCalculation;
-      expect(calc.billAmount, 2000.0);
-      expect(calc.tipPercentage, 15.0);
-      expect(calc.tipAmount, 300.0); // 15% of 2000 = 300
-      expect(calc.totalWithTip, 2300.0);
-      expect(calc.splitCount, 2);
-      expect(calc.perPersonBill, 1000.0);
-      expect(calc.perPersonTip, 150.0);
-      expect(calc.perPersonTotal, 1150.0);
+      expect(calc.billAmount, 1000.0);
+      expect(calc.tipAmount, 100.0);
+      expect(calc.totalAmount, 1100.0);
+      expect(calc.perPersonTotal, 1100.0);
+
+      // Split 4 ways
+      controller.setSplitCount(4);
+      final splitCalc = controller.tipCalculation;
+      expect(splitCalc.splitCount, 4);
+      expect(splitCalc.perPersonTotal, 275.0);
+      expect(splitCalc.perPersonTip, 25.0);
     });
 
-    test('Rounds up to nearest note buffer when enabled', () {
-      controller.setBillAmount(2340.0);
-      controller.setTipPercent(10.0); // Tip = 234, Total = 2574
-      controller.toggleRoundUp();
+    test(
+      'Applies roundUpTotal and roundUpPerPerson rounding modes correctly',
+      () async {
+        await controller.loadRates();
+        controller.setBillAmount(1003.33);
+        controller.setTipPercentage(10.0); // Tip = 100.333, Total = 1103.663
+        controller.setSplitCount(3);
 
-      final calc = controller.tipCalculation;
-      // 2574 rounded to nearest 100 = 2600
-      expect(calc.roundedTotal, 2600.0);
-      expect(calc.roundUpDifference, 26.0);
-      expect(calc.tipAmount, 260.0); // 234 + 26 = 260
+        controller.setRoundingMode(RoundingMode.roundUpTotal);
+        final roundTotalCalc = controller.tipCalculation;
+        expect(roundTotalCalc.totalAmount, 1104.0);
+
+        controller.setRoundingMode(RoundingMode.roundUpPerPerson);
+        final roundPersonCalc = controller.tipCalculation;
+        // 1103.663 / 3 = 367.887 -> ceil = 368.0 -> total = 1104.0
+        expect(roundPersonCalc.perPersonTotal, 368.0);
+        expect(roundPersonCalc.totalAmount, 1104.0);
+      },
+    );
+
+    test(
+      'Updates custom exchange rate and updates cheat-sheet calculations',
+      () async {
+        await controller.loadRates();
+        // Calibrate custom street cash rate for PKR to 282.0
+        await controller.updateCustomRate(282.0);
+
+        expect(controller.directExchangeRate, 282.0);
+        final rows = controller.cheatSheetRows;
+        expect(rows.first.convertedAmount, 282.0);
+
+        // Reset rates back to reference
+        await controller.resetRates();
+        expect(controller.directExchangeRate, 278.50);
+      },
+    );
+
+    test('Provides region-specific tipping etiquette guidance', () {
+      controller.setTargetCurrency('JPY');
+      expect(controller.tippingEtiquette.isTippingCustomary, false);
+      expect(controller.tippingEtiquette.recommendedDiningPct, 0.0);
+
+      controller.setTargetCurrency('PKR');
+      expect(controller.tippingEtiquette.isTippingCustomary, true);
+      expect(controller.tippingEtiquette.recommendedDiningPct, 10.0);
+
+      controller.setTargetCurrency('USD');
+      expect(controller.tippingEtiquette.isTippingCustomary, true);
+      expect(controller.tippingEtiquette.recommendedDiningPct, 18.0);
     });
 
-    test('Switches merchant category preset and updates etiquette advice', () {
-      controller.selectCategory('Expedition Guide & Porter');
-      expect(controller.selectedCategory.value, 'Expedition Guide & Porter');
-      expect(controller.selectedTipPercent.value, 12.0);
-      expect(
-        controller.activePreset.etiquetteNotice.contains('High-altitude'),
-        true,
-      );
+    test('Saves and deletes conversion snapshots in ledger history', () async {
+      await controller.loadRates();
+      controller.setBillAmount(2500.0);
 
-      controller.selectCategory('Counter & Street Food');
-      expect(controller.selectedTipPercent.value, 0.0);
-      expect(
-        controller.activePreset.etiquetteNotice.contains('No gratuity'),
-        true,
-      );
+      await controller.saveCurrentConversion();
+      expect(controller.savedConversions.length, 1);
+
+      final id = controller.savedConversions.first['id'] as int;
+      await controller.deleteSavedConversion(id);
+      expect(controller.savedConversions.isEmpty, true);
     });
   });
 }

@@ -1,4 +1,4 @@
-name: VoyageAI Release & APK Publish
+name: VoyageAI Release & APK Publisher
 
 on:
   push:
@@ -7,9 +7,10 @@ on:
 
 jobs:
   release:
-    name: Build Release APK and Publish
+    name: Build Release APK & Publish GitHub Release
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Repository
@@ -27,35 +28,26 @@ jobs:
           channel: 'stable'
           cache: false
 
-      - name: Verify Flutter Installation
-        run: flutter --version
-
       - name: Resolve Dependencies
         run: flutter pub get
+
+      - name: Code Formatting Check
+        run: dart format --output=none --set-exit-if-changed lib test tool
 
       - name: Static Analysis
         run: flutter analyze --no-fatal-infos
 
-      - name: Run Test Suite
+      - name: Execute Automated Test Suite
         run: flutter test
 
       - name: Build Android Release APK
         run: flutter build apk --release
 
-      - name: Compute SHA-256 Checksum
-        run: |
-          cd build/app/outputs/flutter-apk
-          sha256sum app-release.apk > app-release.apk.sha256
-          cat app-release.apk.sha256
-
       - name: Create GitHub Release and Attach APK
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            build/app/outputs/flutter-apk/app-release.apk
-            build/app/outputs/flutter-apk/app-release.apk.sha256
-          generate_release_notes: true
+          files: build/app/outputs/flutter-apk/app-release.apk
+          name: VoyageAI Release ${{ github.ref_name }}
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true

@@ -1,8 +1,13 @@
-import '../entities/currency_cheat_sheet.dart';
-
 abstract class CurrencyRepository {
-  Future<List<CurrencyRate>> getStoredRates();
-  Future<CurrencyRate?> getRate(String base, String target);
-  Future<void> saveRate(CurrencyRate rate);
-  Future<void> updateSpread(String base, String target, double spreadPercent);
+  Future<Map<String, double>> getExchangeRates();
+  Future<void> updateCustomRate(String currencyCode, double rateToUsd);
+  Future<void> resetRates();
+  Future<List<Map<String, dynamic>>> getSavedConversions();
+  Future<void> saveConversion(
+    String base,
+    String target,
+    double baseAmount,
+    double convertedAmount,
+  );
+  Future<void> deleteConversion(int id);
 }

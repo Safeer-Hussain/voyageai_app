@@ -117,7 +117,10 @@ Future<void> initServiceLocator({
     sl.unregister<CurrencyRepository>();
   }
   sl.registerLazySingleton<CurrencyRepository>(
-    () => CurrencyRepositoryImpl(sl<LocalStorageDatasource>()),
+    () => CurrencyRepositoryImpl(
+      sl<LocalStorageDatasource>(),
+      sl<SharedPreferences>(),
+    ),
   );
 
   // Controllers

@@ -2,7 +2,6 @@ import 'package:sqflite/sqflite.dart';
 
 import '../../core/storage/app_database.dart';
 import '../models/activity_model.dart';
-import '../models/currency_rate_model.dart';
 import '../models/document_model.dart';
 import '../models/expense_model.dart';
 import '../models/jetlag_plan_model.dart';
@@ -278,44 +277,36 @@ class LocalStorageDatasource {
     );
   }
 
-  // Currency Rates
-  Future<List<CurrencyRateModel>> getStoredCurrencyRates() async {
+  // Saved Currency Conversions
+  Future<List<Map<String, dynamic>>> getSavedCurrencyConversions() async {
     final db = await _db;
-    final results = await db.query('currency_rates');
-    return results.map((m) => CurrencyRateModel.fromMap(m)).toList();
-  }
-
-  Future<CurrencyRateModel?> getCurrencyRate(String base, String target) async {
-    final db = await _db;
-    final id = '${base}_$target';
-    final results = await db.query(
-      'currency_rates',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    if (results.isEmpty) return null;
-    return CurrencyRateModel.fromMap(results.first);
-  }
-
-  Future<void> insertCurrencyRate(CurrencyRateModel rate) async {
-    final db = await _db;
-    await db.insert(
-      'currency_rates',
-      rate.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
+    return await db.query(
+      'saved_currency_conversions',
+      orderBy: 'created_at DESC',
+      limit: 50,
     );
   }
 
-  Future<void> updateCurrencySpread(
+  Future<void> insertCurrencyConversion(
     String base,
     String target,
-    double spreadPercent,
+    double baseAmount,
+    double convertedAmount,
   ) async {
     final db = await _db;
-    final id = '${base}_$target';
-    await db.update(
-      'currency_rates',
-      {'spread_percent': spreadPercent},
+    await db.insert('saved_currency_conversions', {
+      'base_currency': base,
+      'target_currency': target,
+      'base_amount': baseAmount,
+      'converted_amount': convertedAmount,
+      'created_at': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  Future<void> deleteCurrencyConversion(int id) async {
+    final db = await _db;
+    await db.delete(
+      'saved_currency_conversions',
       where: 'id = ?',
       whereArgs: [id],
     );
