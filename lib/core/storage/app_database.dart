@@ -150,6 +150,60 @@ class AppDatabase {
         created_at INTEGER NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS flight_compensation_claims (
+        id TEXT PRIMARY KEY,
+        trip_id TEXT NOT NULL,
+        flight_number TEXT NOT NULL,
+        carrier_name TEXT NOT NULL,
+        origin_iata TEXT NOT NULL,
+        destination_iata TEXT NOT NULL,
+        is_carrier_eu INTEGER NOT NULL,
+        flight_date TEXT NOT NULL,
+        disruption_type TEXT NOT NULL,
+        delay_minutes INTEGER NOT NULL,
+        cancellation_notice_days INTEGER,
+        is_extraordinary INTEGER NOT NULL,
+        passenger_name TEXT NOT NULL,
+        booking_reference TEXT NOT NULL,
+        is_eligible INTEGER NOT NULL,
+        compensation_eur REAL NOT NULL,
+        compensation_gbp REAL NOT NULL,
+        primary_jurisdiction TEXT NOT NULL,
+        status TEXT NOT NULL,
+        claim_letter TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS flight_compensation_claims (
+        id TEXT PRIMARY KEY,
+        trip_id TEXT NOT NULL,
+        flight_number TEXT NOT NULL,
+        carrier_name TEXT NOT NULL,
+        origin_iata TEXT NOT NULL,
+        destination_iata TEXT NOT NULL,
+        is_carrier_eu INTEGER NOT NULL,
+        flight_date TEXT NOT NULL,
+        disruption_type TEXT NOT NULL,
+        delay_minutes INTEGER NOT NULL,
+        cancellation_notice_days INTEGER,
+        is_extraordinary INTEGER NOT NULL,
+        passenger_name TEXT NOT NULL,
+        booking_reference TEXT NOT NULL,
+        is_eligible INTEGER NOT NULL,
+        compensation_eur REAL NOT NULL,
+        compensation_gbp REAL NOT NULL,
+        primary_jurisdiction TEXT NOT NULL,
+        status TEXT NOT NULL,
+        claim_letter TEXT NOT NULL,
+        notes TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    ''');
   }
 
   Future<void> seedInitialDataIfEmpty() async {
@@ -190,6 +244,33 @@ class AppDatabase {
         target_currency TEXT NOT NULL,
         base_amount REAL NOT NULL,
         converted_amount REAL NOT NULL,
+        created_at INTEGER NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS flight_compensation_claims (
+        id TEXT PRIMARY KEY,
+        trip_id TEXT NOT NULL,
+        flight_number TEXT NOT NULL,
+        carrier_name TEXT NOT NULL,
+        origin_iata TEXT NOT NULL,
+        destination_iata TEXT NOT NULL,
+        is_carrier_eu INTEGER NOT NULL,
+        flight_date TEXT NOT NULL,
+        disruption_type TEXT NOT NULL,
+        delay_minutes INTEGER NOT NULL,
+        cancellation_notice_days INTEGER,
+        is_extraordinary INTEGER NOT NULL,
+        passenger_name TEXT NOT NULL,
+        booking_reference TEXT NOT NULL,
+        is_eligible INTEGER NOT NULL,
+        compensation_eur REAL NOT NULL,
+        compensation_gbp REAL NOT NULL,
+        primary_jurisdiction TEXT NOT NULL,
+        status TEXT NOT NULL,
+        claim_letter TEXT NOT NULL,
+        notes TEXT NOT NULL,
         created_at INTEGER NOT NULL
       )
     ''');
@@ -258,6 +339,7 @@ class AppDatabase {
     await db.delete('packing_items');
     await db.delete('jetlag_plans');
     await db.delete('saved_currency_conversions');
+    await db.delete('flight_compensation_claims');
     await db.delete('trips');
   }
 }

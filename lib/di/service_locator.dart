@@ -10,6 +10,7 @@ import '../data/repositories/concierge_repository_impl.dart';
 import '../data/repositories/currency_repository_impl.dart';
 import '../data/repositories/document_repository_impl.dart';
 import '../data/repositories/expense_repository_impl.dart';
+import '../data/repositories/flight_claim_repository_impl.dart';
 import '../data/repositories/itinerary_repository_impl.dart';
 import '../data/repositories/jetlag_repository_impl.dart';
 import '../data/repositories/packing_repository_impl.dart';
@@ -18,6 +19,7 @@ import '../domain/repositories/concierge_repository.dart';
 import '../domain/repositories/currency_repository.dart';
 import '../domain/repositories/document_repository.dart';
 import '../domain/repositories/expense_repository.dart';
+import '../domain/repositories/flight_claim_repository.dart';
 import '../domain/repositories/itinerary_repository.dart';
 import '../domain/repositories/jetlag_repository.dart';
 import '../domain/repositories/packing_repository.dart';
@@ -121,6 +123,13 @@ Future<void> initServiceLocator({
       sl<LocalStorageDatasource>(),
       sl<SharedPreferences>(),
     ),
+  );
+
+  if (sl.isRegistered<FlightClaimRepository>()) {
+    sl.unregister<FlightClaimRepository>();
+  }
+  sl.registerLazySingleton<FlightClaimRepository>(
+    () => FlightClaimRepositoryImpl(sl<LocalStorageDatasource>()),
   );
 
   // Controllers

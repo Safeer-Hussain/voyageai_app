@@ -5,6 +5,7 @@ import '../domain/repositories/concierge_repository.dart';
 import '../domain/repositories/currency_repository.dart';
 import '../domain/repositories/document_repository.dart';
 import '../domain/repositories/expense_repository.dart';
+import '../domain/repositories/flight_claim_repository.dart';
 import '../domain/repositories/itinerary_repository.dart';
 import '../domain/repositories/jetlag_repository.dart';
 import '../domain/repositories/packing_repository.dart';
@@ -13,6 +14,7 @@ import '../presentation/ai_concierge/controllers/ai_concierge_controller.dart';
 import '../presentation/currency/controllers/currency_cheat_sheet_controller.dart';
 import '../presentation/document_vault/controllers/document_vault_controller.dart';
 import '../presentation/expense_ledger/controllers/expense_ledger_controller.dart';
+import '../presentation/flight_evaluator/controllers/flight_claim_controller.dart';
 import '../presentation/itinerary/controllers/itinerary_controller.dart';
 import '../presentation/jetlag/controllers/jetlag_controller.dart';
 import '../presentation/packing/controllers/packing_checklist_controller.dart';
@@ -48,6 +50,10 @@ class AppBindings extends Bindings {
 
     Get.put<CurrencyCheatSheetController>(
       CurrencyCheatSheetController(sl<CurrencyRepository>()),
+    );
+
+    Get.put<FlightClaimController>(
+      FlightClaimController(sl<FlightClaimRepository>()),
     );
 
     Get.put<AiConciergeController>(

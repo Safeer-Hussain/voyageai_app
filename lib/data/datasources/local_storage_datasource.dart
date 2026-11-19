@@ -311,4 +311,56 @@ class LocalStorageDatasource {
       whereArgs: [id],
     );
   }
+
+  // Flight Compensation Claims
+  Future<List<Map<String, dynamic>>> getFlightClaimsForTrip(
+    String tripId,
+  ) async {
+    final db = await _db;
+    return await db.query(
+      'flight_compensation_claims',
+      where: 'trip_id = ?',
+      whereArgs: [tripId],
+      orderBy: 'created_at DESC',
+    );
+  }
+
+  Future<Map<String, dynamic>?> getFlightClaimById(String id) async {
+    final db = await _db;
+    final results = await db.query(
+      'flight_compensation_claims',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    if (results.isEmpty) return null;
+    return results.first;
+  }
+
+  Future<void> insertFlightClaim(Map<String, dynamic> claimMap) async {
+    final db = await _db;
+    await db.insert(
+      'flight_compensation_claims',
+      claimMap,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> updateFlightClaimStatus(String claimId, String status) async {
+    final db = await _db;
+    await db.update(
+      'flight_compensation_claims',
+      {'status': status},
+      where: 'id = ?',
+      whereArgs: [claimId],
+    );
+  }
+
+  Future<void> deleteFlightClaim(String claimId) async {
+    final db = await _db;
+    await db.delete(
+      'flight_compensation_claims',
+      where: 'id = ?',
+      whereArgs: [claimId],
+    );
+  }
 }

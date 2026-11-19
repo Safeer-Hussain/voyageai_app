@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../controllers/itinerary_controller.dart';
 import '../../currency/views/currency_cheat_sheet_view.dart';
+import '../../flight_evaluator/views/flight_delay_evaluator_view.dart';
 import '../../jetlag/views/jetlag_planner_view.dart';
 import '../../packing/views/packing_checklist_view.dart';
 import 'widgets/activity_card.dart';
@@ -207,30 +208,6 @@ class ItineraryView extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: Icon(
-                    Icons.currency_exchange,
-                    color: colorScheme.primary,
-                  ),
-                  tooltip: 'Currency & Tip Cheat-Sheet',
-                  onPressed: () => Get.to(() => const CurrencyCheatSheetView()),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.timelapse_outlined,
-                    color: colorScheme.primary,
-                  ),
-                  tooltip: 'Circadian Jetlag Protocol',
-                  onPressed: () => Get.to(() => const JetlagPlannerView()),
-                ),
-                IconButton(
-                  icon: Icon(
-                    Icons.luggage_outlined,
-                    color: colorScheme.primary,
-                  ),
-                  tooltip: 'Packing Checklist',
-                  onPressed: () => Get.to(() => const PackingChecklistView()),
-                ),
-                IconButton(
                   icon: Icon(Icons.share_outlined, color: colorScheme.primary),
                   tooltip: 'Share Dossier',
                   onPressed: () => _showShareSheet(context),
@@ -244,6 +221,42 @@ class ItineraryView extends StatelessWidget {
                   onPressed: () => _showGenerateTrip(context),
                 ),
               ],
+            ),
+            const SizedBox(height: 6),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const ClampingScrollPhysics(),
+              child: Row(
+                children: [
+                  _buildHeaderToolChip(
+                    icon: Icons.gavel,
+                    label: 'Flight Delay (EU261)',
+                    onTap: () => Get.to(() => const FlightDelayEvaluatorView()),
+                    colorScheme: colorScheme,
+                  ),
+                  const SizedBox(width: 6),
+                  _buildHeaderToolChip(
+                    icon: Icons.currency_exchange,
+                    label: 'Currency & Tip',
+                    onTap: () => Get.to(() => const CurrencyCheatSheetView()),
+                    colorScheme: colorScheme,
+                  ),
+                  const SizedBox(width: 6),
+                  _buildHeaderToolChip(
+                    icon: Icons.timelapse_outlined,
+                    label: 'Jetlag Protocol',
+                    onTap: () => Get.to(() => const JetlagPlannerView()),
+                    colorScheme: colorScheme,
+                  ),
+                  const SizedBox(width: 6),
+                  _buildHeaderToolChip(
+                    icon: Icons.luggage_outlined,
+                    label: 'Packing List',
+                    onTap: () => Get.to(() => const PackingChecklistView()),
+                    colorScheme: colorScheme,
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 6),
             Row(
@@ -289,6 +302,31 @@ class ItineraryView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeaderToolChip({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required ColorScheme colorScheme,
+  }) {
+    return ActionChip(
+      avatar: Icon(icon, size: 14, color: colorScheme.primary),
+      label: Text(label),
+      labelStyle: TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w600,
+        color: colorScheme.onSurface,
+      ),
+      backgroundColor: colorScheme.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+      visualDensity: VisualDensity.compact,
+      onPressed: onTap,
     );
   }
 

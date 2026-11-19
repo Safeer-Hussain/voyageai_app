@@ -10,6 +10,7 @@ import 'package:voyage_ai_app/domain/repositories/concierge_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/currency_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/document_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/expense_repository.dart';
+import 'package:voyage_ai_app/domain/repositories/flight_claim_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/itinerary_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/jetlag_repository.dart';
 import 'package:voyage_ai_app/domain/repositories/packing_repository.dart';
@@ -20,6 +21,7 @@ import '../unit/ai_concierge_controller_test.dart';
 import '../unit/currency_cheat_sheet_controller_test.dart';
 import '../unit/document_vault_controller_test.dart';
 import '../unit/expense_ledger_controller_test.dart';
+import '../unit/flight_claim_controller_test.dart';
 import '../unit/itinerary_controller_test.dart';
 import '../unit/jetlag_controller_test.dart';
 import '../unit/packing_checklist_controller_test.dart';
@@ -82,6 +84,11 @@ void main() {
       sl.unregister<CurrencyRepository>();
     }
     sl.registerSingleton<CurrencyRepository>(MockCurrencyRepository());
+
+    if (sl.isRegistered<FlightClaimRepository>()) {
+      sl.unregister<FlightClaimRepository>();
+    }
+    sl.registerSingleton<FlightClaimRepository>(MockFlightClaimRepository());
   });
 
   tearDown(() {

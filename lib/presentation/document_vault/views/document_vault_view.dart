@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../flight_evaluator/controllers/flight_claim_controller.dart';
+import '../../flight_evaluator/views/flight_delay_evaluator_view.dart';
 import '../../itinerary/controllers/itinerary_controller.dart';
 import '../controllers/document_vault_controller.dart';
 import 'widgets/add_document_sheet.dart';
@@ -177,6 +179,33 @@ class DocumentVaultView extends StatelessWidget {
                         foregroundColor: Colors.white,
                       ),
                     ),
+                    if (doc.type.toLowerCase() == 'flight') ...[
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(ctx).pop();
+                          final evalCtrl = Get.find<FlightClaimController>();
+                          evalCtrl.populateFromDocument(doc);
+                          Get.to(() => const FlightDelayEvaluatorView());
+                        },
+                        icon: const Icon(Icons.gavel, size: 16),
+                        label: const Text(
+                          'Evaluate Flight Delay Compensation',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 44),
+                          foregroundColor: isBoosted
+                              ? Colors.black87
+                              : colorScheme.primary,
+                          side: BorderSide(
+                            color: isBoosted
+                                ? Colors.black54
+                                : colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -269,12 +298,36 @@ class DocumentVaultView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
-                'High-contrast offline passes with vector barcodes & brightness boost.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurfaceVariant,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'High-contrast offline passes with vector barcodes & brightness boost.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        Get.to(() => const FlightDelayEvaluatorView()),
+                    icon: const Icon(Icons.gavel, size: 14),
+                    label: const Text(
+                      'EU261 Evaluator',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 14),
               // Category Filter Bar

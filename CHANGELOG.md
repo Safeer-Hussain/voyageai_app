@@ -5,6 +5,22 @@ All notable changes to VoyageAI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-11-19
+
+### Added
+- Sprint 4: ICAO & EU261 Flight Delay Compensation Eligibility Evaluator.
+  - Multi-jurisdictional air passenger rights engine (Regulation EC No 261/2004, UK261, Montreal Convention 1999 Article 19).
+  - Great-Circle Haversine distance calculator with offline global airport catalog (LHR, CDG, FRA, AMS, JFK, DXB, etc.).
+  - Distance tier statutory compensation matrix (€250 / £220 for <=1500 km, €400 / £350 for 1500-3500 km or intra-EU, €600 / £520 for >3500 km with 50% delay reduction rule).
+  - Disruption coverage across arrival delay, cancellation (with 7/14 day thresholds), involuntary denied boarding, and missed connecting flights.
+  - Certified extraordinary circumstances evaluation (Force Majeure defense assessment vs airline maintenance carrier fault).
+  - Statutory Right to Care advisory checklist (Article 9 meals, refreshments, hotel, transfers, communications).
+  - Formal statutory legal claim notice generator with copy-to-clipboard and 14-day statutory reply deadline.
+  - Local SQLite persistence for saved flight claims with status tracking (`DRAFT`, `SUBMITTED`, `UNDER_REVIEW`, `SETTLED`, `REJECTED`).
+  - Boarding pass integration: 1-tap pre-fill from TravelDocument flight boarding passes in Document Vault.
+  - Responsive two-pane master-detail landscape layout for 360dp height displays.
+  - Dedicated unit and widget test suite covering Haversine distance, statutory compensation rules, and UI layout.
+
 ## [1.0.1] - 2026-11-18
 
 ### Added
